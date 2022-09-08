@@ -26,6 +26,9 @@ SNAKE_TURN = pygame.transform.scale(
 FRUIT = pygame.transform.scale(
     pygame.image.load(os.path.join("assets", "fruit.png")), (cell_size, cell_size)
 ).convert_alpha()
+TROPHY = pygame.transform.scale(
+    pygame.image.load(os.path.join("assets", "TROPHY.png")), (cell_size, cell_size)
+).convert_alpha()
 BG = pygame.transform.scale(
     pygame.image.load(os.path.join("assets", "bg.png")), res
 ).convert_alpha()
@@ -39,6 +42,7 @@ class Snake:
         self.last_move = pygame.K_RIGHT
         self.pos = []
         self.score = 0
+        self.highest_score = 0
 
     def move(self, key):
         if key == pygame.K_RIGHT and self.last_move != pygame.K_LEFT:
@@ -100,6 +104,8 @@ class Snake:
     def check_consume(self):
         if self.snake[0].x == self.pos[0] and self.snake[0].y == self.pos[1]:
             self.score += 1
+            if self.score > self.highest_score:
+                self.highest_score = self.score
             return True
 
     def check_collision(self):
@@ -138,6 +144,7 @@ def main():
 
     SCREEN_UPDATE = pygame.USEREVENT
     pygame.time.set_timer(SCREEN_UPDATE, 150)
+    font = pygame.font.SysFont("monospace", 20)
 
     while not snake.generate_pos():
         snake.generate_pos()
@@ -148,11 +155,15 @@ def main():
                 clock.tick(fps)
                 WINDOW.blit(BG, (0, 0))
                 # display score
+                WINDOW.blit(FRUIT, (0, 0))
                 WINDOW.blit(
-                    pygame.font.SysFont("monospace", 20).render(
-                        f"Score: {snake.score}", True, (0, 0, 0)
-                    ),
-                    (8, 8),
+                    font.render(f"{snake.score}", True, (255, 255, 255)),
+                    (FRUIT.get_width(), 10),
+                )
+                WINDOW.blit(TROPHY, (FRUIT.get_width() + 20, 0))
+                WINDOW.blit(
+                    font.render(f"{snake.highest_score}", True, (255, 255, 255)),
+                    (FRUIT.get_width() + TROPHY.get_width() + 20, 10),
                 )
                 snake.update_snake()
                 snake.update_fruit()
