@@ -38,7 +38,7 @@ class Snake:
         self.move_dir = (1, 0)
         self.last_move = pygame.K_RIGHT
         self.pos = []
-        self.points = 0
+        self.score = 0
 
     def move(self, key):
         if key == pygame.K_RIGHT and self.last_move != pygame.K_LEFT:
@@ -99,22 +99,25 @@ class Snake:
 
     def check_consume(self):
         if self.snake[0].x == self.pos[0] and self.snake[0].y == self.pos[1]:
-            self.points += 1
+            self.score += 1
             return True
 
     def check_collision(self):
-        collision = False
         # check wall collision
-        if 1 < self.snake[0].x < rows_playable or 1 < self.snake[0].y < rows_playable:
-            collision = True
+        if (
+            self.snake[0].x < 1
+            or self.snake[0].x > rows_playable
+            or self.snake[0].y < 1
+            or self.snake[0].y > rows_playable
+        ):
+            return True
 
         # check self collision
-        for block in self.snake:
-            if self.snake[0].x == block.x or self.snake[0].y == block.y:
-                collision = True
-                break
+        for block in self.snake[1:]:
+            if block == self.snake[0]:
+                return True
 
-        return collision
+        return False
 
 
 def main_menu():
@@ -141,16 +144,26 @@ def main():
 
     while run:
         if main_menu():
-            while True: # not snake.check_collision():
+            while not snake.check_collision():
                 clock.tick(fps)
                 WINDOW.blit(BG, (0, 0))
+                # display score
+                WINDOW.blit(
+                    pygame.font.SysFont("monospace", 20).render(
+                        f"Score: {snake.score}", True, (0, 0, 0)
+                    ),
+                    (8, 8),
+                )
                 snake.update_snake()
                 snake.update_fruit()
 
                 # check if fruit consumed
                 if snake.check_consume():
                     # increase snake length by 1 block
-                    snake.snake.insert(len(snake.snake) - 1, Vector2(snake.snake[-1].x, snake.snake[-1].y))
+                    snake.snake.insert(
+                        len(snake.snake) - 1,
+                        Vector2(snake.snake[-1].x, snake.snake[-1].y),
+                    )
                     snake.snake[-1] += snake.move_dir
                     while not snake.generate_pos():
                         snake.generate_pos()
