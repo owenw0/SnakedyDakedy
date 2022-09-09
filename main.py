@@ -4,6 +4,7 @@ from pygame.math import Vector2
 
 pygame.init()
 
+pygame.display.set_caption("SnakedyDakedy")
 clock = pygame.time.Clock()
 fps = 60
 total_rows = 17
