@@ -70,22 +70,80 @@ class Snake:
         self.snake = snake_copy[:]
 
     def update_snake(self):
-        for i, block in enumerate(self.snake):
-            if i == 0:
-                WINDOW.blit(
-                    pygame.transform.rotate(SNAKE_HEAD, self.rotation),
-                    (self.snake[0].x * cell_size, self.snake[0].y * cell_size),
-                )
-            elif i == len(self.snake) - 1:
-                WINDOW.blit(
-                    pygame.transform.rotate(SNAKE_TAIL, self.rotation),
-                    (self.snake[-1].x * cell_size, self.snake[-1].y * cell_size),
-                )
+        self.update_head_graphics()
+        self.update_tail_graphics()
+
+        for index, block in enumerate(self.snake):
+            x_pos = int(block.x * cell_size)
+            y_pos = int(block.y * cell_size)
+            block_rect = pygame.Rect(x_pos, y_pos, cell_size, cell_size)
+
+            if index == 0:
+                WINDOW.blit(self.head, block_rect)
+            elif index == len(self.snake) - 1:
+                WINDOW.blit(self.tail, block_rect)
             else:
-                WINDOW.blit(
-                    pygame.transform.rotate(SNAKE_BODY, self.rotation),
-                    (block.x * cell_size, block.y * cell_size),
-                )
+                previous_block = self.snake[index + 1] - block
+                next_block = self.snake[index - 1] - block
+                if previous_block.x == next_block.x:
+                    WINDOW.blit(pygame.transform.rotate(SNAKE_BODY, 90), block_rect)
+                elif previous_block.y == next_block.y:
+                    WINDOW.blit(SNAKE_BODY, block_rect)
+                else:
+                    if (
+                        previous_block.x == -1
+                        and next_block.y == -1
+                        or previous_block.y == -1
+                        and next_block.x == -1
+                    ):
+                        WINDOW.blit(
+                            pygame.transform.rotate(SNAKE_TURN, 180), block_rect
+                        )
+                    elif (
+                        previous_block.x == -1
+                        and next_block.y == 1
+                        or previous_block.y == 1
+                        and next_block.x == -1
+                    ):
+                        WINDOW.blit(
+                            pygame.transform.rotate(SNAKE_TURN, -90), block_rect
+                        )
+                    elif (
+                        previous_block.x == 1
+                        and next_block.y == -1
+                        or previous_block.y == -1
+                        and next_block.x == 1
+                    ):
+                        WINDOW.blit(pygame.transform.rotate(SNAKE_TURN, 90), block_rect)
+                    elif (
+                        previous_block.x == 1
+                        and next_block.y == 1
+                        or previous_block.y == 1
+                        and next_block.x == 1
+                    ):
+                        WINDOW.blit(pygame.transform.rotate(SNAKE_TURN, 0), block_rect)
+
+    def update_head_graphics(self):
+        head_relation = self.snake[1] - self.snake[0]
+        if head_relation == Vector2(1, 0):
+            self.head = pygame.transform.rotate(SNAKE_HEAD, 180)
+        elif head_relation == Vector2(-1, 0):
+            self.head = pygame.transform.rotate(SNAKE_HEAD, 0)
+        elif head_relation == Vector2(0, 1):
+            self.head = pygame.transform.rotate(SNAKE_HEAD, 90)
+        elif head_relation == Vector2(0, -1):
+            self.head = pygame.transform.rotate(SNAKE_HEAD, -90)
+
+    def update_tail_graphics(self):
+        tail_relation = self.snake[-2] - self.snake[-1]
+        if tail_relation == Vector2(1, 0):
+            self.tail = pygame.transform.rotate(SNAKE_TAIL, 0)
+        elif tail_relation == Vector2(-1, 0):
+            self.tail = pygame.transform.rotate(SNAKE_TAIL, 180)
+        elif tail_relation == Vector2(0, 1):
+            self.tail = pygame.transform.rotate(SNAKE_TAIL, -90)
+        elif tail_relation == Vector2(0, -1):
+            self.tail = pygame.transform.rotate(SNAKE_TAIL, 90)
 
     def generate_pos(self):
         row = random.randint(1, rows_playable - 1)
@@ -108,6 +166,14 @@ class Snake:
         global highscore
         if self.snake[0].x == self.pos[0] and self.snake[0].y == self.pos[1]:
             self.score += 1
+            if self.score % 10 == 0:
+                pygame.mixer.Sound.play(
+                    pygame.mixer.Sound(os.path.join("assets", "fruit-bonus.wav"))
+                )
+            else:
+                pygame.mixer.Sound.play(
+                    pygame.mixer.Sound(os.path.join("assets", "fruit-consume.wav"))
+                )
             if self.score > highscore:
                 highscore = self.score
             return True
@@ -120,16 +186,21 @@ class Snake:
             or self.snake[0].y < 1
             or self.snake[0].y > rows_playable
         ):
+            pygame.mixer.Sound.play(
+                pygame.mixer.Sound(os.path.join("assets", "game-over.wav"))
+            )
             return True
 
         # check self collision
         for block in self.snake[1:]:
             if block == self.snake[0]:
+                pygame.mixer.Sound.play(
+                    pygame.mixer.Sound(os.path.join("assets", "game-over.wav"))
+                )
                 return True
 
         return False
 
-        
     def game_over(self):
         menu = True
         while menu:
@@ -137,29 +208,41 @@ class Snake:
 
             fruit = pygame.transform.scale2x(FRUIT)
             fruit_rect = fruit.get_rect()
-            fruit_rect.center = (width/3, width/2)
+            fruit_rect.center = (width / 3, width / 2)
             WINDOW.blit(fruit, fruit_rect)
 
-            score = pygame.font.SysFont("monospace", 40).render(f"{self.score}", True, (255, 255, 255))
+            score = pygame.font.SysFont("monospace", 40).render(
+                f"{self.score}", True, (255, 255, 255)
+            )
             score_rect = score.get_rect()
-            score_rect.topleft = (width/3 + 10, width/2)
+            score_rect.topleft = (width / 3 + 10, width / 2)
             WINDOW.blit(score, score_rect)
 
             trophy = pygame.transform.scale2x(TROPHY)
             trophy_rect = trophy.get_rect()
-            trophy_rect.center = (width * 0.66, width/2)
+            trophy_rect.center = (width * 0.66, width / 2)
             WINDOW.blit(trophy, trophy_rect)
 
-
-            highscore_txt = pygame.font.SysFont("monospace", 40).render(f"{highscore}", True, (255, 255, 255))
+            highscore_txt = pygame.font.SysFont("monospace", 40).render(
+                f"{highscore}", True, (255, 255, 255)
+            )
             highscore_rect = highscore_txt.get_rect()
-            highscore_rect.topleft = (width * 0.66 + 10, width/2)
+            highscore_rect.topleft = (width * 0.66 + 10, width / 2)
             WINDOW.blit(highscore_txt, highscore_rect)
 
-            sub = pygame.font.SysFont("monospace", 25).render("Press SPACE to return to main menu", True, (255, 255, 255))
+            sub = pygame.font.SysFont("monospace", 25).render(
+                "Press SPACE to return to main menu", True, (255, 255, 255)
+            )
             sub_rect = sub.get_rect()
-            sub_rect.center = (width/2, width * 0.65)
+            sub_rect.center = (width / 2, width * 0.65)
             WINDOW.blit(sub, sub_rect)
+
+            exit = pygame.font.SysFont("monospace", 20).render(
+                "Press ESC to exit", True, (255, 255, 255)
+            )
+            exit_rect = exit.get_rect()
+            exit_rect.center = (width / 2, width * 0.8)
+            WINDOW.blit(exit, exit_rect)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -167,7 +250,13 @@ class Snake:
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
+                        pygame.mixer.Sound.play(
+                            pygame.mixer.Sound(os.path.join("assets", "select-2.wav"))
+                        )
                         menu = False
+                    if event.key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        sys.exit()
 
             pygame.display.flip()
             clock.tick(fps)
@@ -178,18 +267,29 @@ def main_menu():
     while menu:
         WINDOW.blit(BG, (0, 0))
         snake_rect = pygame.transform.scale2x(SNAKE).get_rect()
-        snake_rect.center = (width/2, width/4)
+        snake_rect.center = (width / 2, width / 4)
         WINDOW.blit(pygame.transform.scale2x(SNAKE), snake_rect)
-        
-        title = pygame.font.SysFont("monospace", 70).render("SnakedyDakedy", True, (255, 255, 255))
+
+        title = pygame.font.SysFont("monospace", 70).render(
+            "SnakedyDakedy", True, (255, 255, 255)
+        )
         title_rect = title.get_rect()
-        title_rect.center = (width/2, width/2)
+        title_rect.center = (width / 2, width / 2)
         WINDOW.blit(title, title_rect)
 
-        sub = pygame.font.SysFont("monospace", 25).render("Press SPACE to start", True, (255, 255, 255))
+        sub = pygame.font.SysFont("monospace", 25).render(
+            "Press SPACE to start", True, (255, 255, 255)
+        )
         sub_rect = sub.get_rect()
-        sub_rect.center = (width/2, width * 0.65)
+        sub_rect.center = (width / 2, width * 0.65)
         WINDOW.blit(sub, sub_rect)
+
+        exit = pygame.font.SysFont("monospace", 20).render(
+            "Press ESC to exit", True, (255, 255, 255)
+        )
+        exit_rect = exit.get_rect()
+        exit_rect.center = (width / 2, width * 0.8)
+        WINDOW.blit(exit, exit_rect)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -197,7 +297,13 @@ def main_menu():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
+                    pygame.mixer.Sound.play(
+                        pygame.mixer.Sound(os.path.join("assets", "select-1.wav"))
+                    )
                     menu = False
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
 
         pygame.display.flip()
         clock.tick(fps)
@@ -253,12 +359,16 @@ def main():
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     key = event.key
+                    if key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        sys.exit()
                 if event.type == SCREEN_UPDATE:
                     snake.move(key)
 
             pygame.display.flip()
-        
+
         snake.game_over()
+
 
 if __name__ == "__main__":
     main()
